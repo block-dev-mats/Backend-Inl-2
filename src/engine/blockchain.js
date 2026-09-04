@@ -1,4 +1,5 @@
 import { Block } from './block.js';
+import { getCreditHistory, getCreditState, validateTransaction } from '../domain/carbon-credit.js';
 
 function createGenesisBlock() {
   return new Block(0, '2026-01-01T00:00:00.000Z', [], '0');
@@ -21,7 +22,18 @@ export class Blockchain {
   }
 
   addTransaction(transaction) {
-    this.pendingTransactions.push(transaction);
+    const minedTransactions = this.chain.flatMap((block) => block.data);
+    validateTransaction(transaction, [...minedTransactions, ...this.pendingTransactions]);
+    this.pendingTransactions.push(structuredClone(transaction));
+  }
+
+  // Public verification reads confirmed history; pending transactions are excluded.
+  getCreditHistory(creditId) {
+    return getCreditHistory(this.chain.flatMap((block) => block.data), creditId);
+  }
+
+  getCreditState(creditId) {
+    return getCreditState(this.chain.flatMap((block) => block.data), creditId);
   }
 
   minePendingTransactions() {

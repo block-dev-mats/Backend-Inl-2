@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "test": "node --test",
-    "check": "node --check src/block.js && node --check src/blockchain.js && node --check test/blockchain.test.js"
+    "check": "node --check src/engine/block.js && node --check src/engine/blockchain.js && node --check src/domain/carbon-credit.js && node --check test/blockchain.test.js && node --check test/carbon-credit.test.js"
   },
   "engines": {
     "node": ">=22"

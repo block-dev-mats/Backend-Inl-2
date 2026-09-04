@@ -1,9 +1,13 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { Block } from '../src/block.js';
-import { Blockchain } from '../src/blockchain.js';
+import { Block } from '../src/engine/block.js';
+import { Blockchain } from '../src/engine/blockchain.js';
 
 const timestamp = '2026-01-02T00:00:00.000Z';
+const mint = {
+  creditId: 'VERRA-2026-8801', action: 'MINT', company: 'IKEA',
+  co2Tons: 500, timestamp: 1772188800000,
+};
 
 test('mining meets difficulty and changes nonce', () => {
   const block = new Block(1, timestamp, [{ amount: 10 }], 'previous');
@@ -27,18 +31,18 @@ test('object key order does not affect the hash, including nested objects', () =
 test('mining drains pending transactions and preserves earlier blocks and data', () => {
   const blockchain = new Blockchain(2);
   const genesis = structuredClone(blockchain.chain[0]);
-  const transaction = { amount: 10 };
+  const transaction = { ...mint };
   blockchain.addTransaction(transaction);
   assert.deepEqual(blockchain.pendingTransactions, [transaction]);
   const mined = blockchain.minePendingTransactions();
   assert.equal(blockchain.getLatestBlock(), mined);
   assert.equal(mined.previousHash, genesis.hash);
   assert.ok(mined.hash.startsWith('00'));
-  assert.deepEqual(mined.data, [{ amount: 10 }]);
+  assert.deepEqual(mined.data, [mint]);
   assert.deepEqual(blockchain.pendingTransactions, []);
   const snapshot = structuredClone(mined);
-  transaction.amount = 999;
-  blockchain.addTransaction({ amount: 5 });
+  transaction.co2Tons = 999;
+  blockchain.addTransaction({ ...mint, creditId: 'VERRA-2026-8802' });
   blockchain.minePendingTransactions();
   assert.ok(blockchain.getLatestBlock().hash.startsWith('00'));
   assert.deepEqual(structuredClone(blockchain.chain[0]), genesis);
@@ -48,14 +52,14 @@ test('mining drains pending transactions and preserves earlier blocks and data',
 
 test('tampering with mined data or a hash link invalidates the chain', () => {
   const blockchain = new Blockchain(1);
-  blockchain.addTransaction({ amount: 10 });
+  blockchain.addTransaction({ ...mint });
   const block = blockchain.minePendingTransactions();
   blockchain.minePendingTransactions();
   assert.ok(block.hash.startsWith('0'));
   assert.equal(blockchain.isChainValid(), true);
-  block.data[0].amount = 20;
+  block.data[0].co2Tons = 20;
   assert.equal(blockchain.isChainValid(), false);
-  block.data[0].amount = 10;
+  block.data[0].co2Tons = 500;
   assert.equal(blockchain.isChainValid(), true);
   block.previousHash = 'wrong';
   block.hash = block.calculateHash();
@@ -73,14 +77,14 @@ test('genesis is deterministic and cannot be replaced by rehashing', () => {
 
 test('rehashing a tampered mined block without valid proof of work invalidates the chain', () => {
   const blockchain = new Blockchain(2);
-  blockchain.addTransaction({ amount: 10 });
+  blockchain.addTransaction({ ...mint });
   const block = blockchain.minePendingTransactions();
   const minedNonce = block.nonce;
   assert.equal(blockchain.isChainValid(), true);
 
   // A changed hash can coincidentally meet PoW, so select a change that does not.
   do {
-    block.data[0].amount += 1;
+    block.data[0].co2Tons += 1;
     block.hash = block.calculateHash();
   } while (block.hash.startsWith('00'));
 
@@ -95,14 +99,14 @@ test('rehashing a tampered mined block without valid proof of work invalidates t
 
 test('lowering a block-local difficulty cannot bypass the chain proof of work', () => {
   const blockchain = new Blockchain(2);
-  blockchain.addTransaction({ amount: 10 });
+  blockchain.addTransaction({ ...mint });
   const block = blockchain.minePendingTransactions();
   const minedNonce = block.nonce;
   assert.equal(blockchain.isChainValid(), true);
 
   block.difficulty = 0;
   do {
-    block.data[0].amount += 1;
+    block.data[0].co2Tons += 1;
     block.hash = block.calculateHash();
   } while (block.hash.startsWith('00'));
 
