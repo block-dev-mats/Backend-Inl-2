@@ -1,0 +1,13 @@
+{
+  "name": "backend-inl-2",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test",
+    "check": "node --check src/block.js && node --check src/blockchain.js && node --check test/blockchain.test.js"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
