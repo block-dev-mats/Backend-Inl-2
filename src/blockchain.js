@@ -40,7 +40,13 @@ export class Blockchain {
     for (let index = 0; index < this.chain.length; index += 1) {
       const block = this.chain[index];
       if (block.index !== index || block.hash !== block.calculateHash()) return false;
-      if (index > 0 && block.previousHash !== this.chain[index - 1].hash) return false;
+      if (index > 0) {
+        if (block.previousHash !== this.chain[index - 1].hash) return false;
+        if (!Number.isInteger(block.difficulty) || block.difficulty < 0 || block.difficulty > 64) {
+          return false;
+        }
+        if (!block.hash.startsWith('0'.repeat(block.difficulty))) return false;
+      }
     }
     return true;
   }

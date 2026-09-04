@@ -19,6 +19,7 @@ export class Block {
     this.data = structuredClone(data);
     this.previousHash = previousHash;
     this.nonce = 0;
+    this.difficulty = 0;
     this.hash = this.calculateHash();
   }
 
@@ -29,6 +30,7 @@ export class Block {
       data: this.data,
       previousHash: this.previousHash,
       nonce: this.nonce,
+      difficulty: this.difficulty,
     });
     return createHash('sha256').update(contents).digest('hex');
   }
@@ -38,6 +40,7 @@ export class Block {
       throw new RangeError('Difficulty must be an integer between 0 and 64.');
     }
 
+    this.difficulty = difficulty;
     const prefix = '0'.repeat(difficulty);
     this.hash = this.calculateHash();
     while (!this.hash.startsWith(prefix)) {

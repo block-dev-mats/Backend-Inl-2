@@ -67,3 +67,25 @@ test('genesis is deterministic and cannot be replaced by rehashing', () => {
   blockchain.chain[0].hash = blockchain.chain[0].calculateHash();
   assert.equal(blockchain.isChainValid(), false);
 });
+
+test('rehashing a tampered mined block without valid proof of work invalidates the chain', () => {
+  const blockchain = new Blockchain();
+  blockchain.addTransaction({ amount: 10 });
+  const block = blockchain.minePendingTransactions(2);
+  const minedNonce = block.nonce;
+  assert.equal(blockchain.isChainValid(), true);
+
+  // A changed hash can coincidentally meet PoW, so select a change that does not.
+  do {
+    block.data[0].amount += 1;
+    block.hash = block.calculateHash();
+  } while (block.hash.startsWith('00'));
+
+  assert.equal(block.nonce, minedNonce);
+  assert.equal(block.hash, block.calculateHash());
+  assert.equal(block.previousHash, blockchain.chain[0].hash);
+  assert.equal(blockchain.isChainValid(), false);
+
+  block.mineBlock(2);
+  assert.equal(blockchain.isChainValid(), true);
+});
