@@ -25,12 +25,12 @@ test('object key order does not affect the hash, including nested objects', () =
 });
 
 test('mining drains pending transactions and preserves earlier blocks and data', () => {
-  const blockchain = new Blockchain();
+  const blockchain = new Blockchain(2);
   const genesis = structuredClone(blockchain.chain[0]);
   const transaction = { amount: 10 };
   blockchain.addTransaction(transaction);
   assert.deepEqual(blockchain.pendingTransactions, [transaction]);
-  const mined = blockchain.minePendingTransactions(2);
+  const mined = blockchain.minePendingTransactions();
   assert.equal(blockchain.getLatestBlock(), mined);
   assert.equal(mined.previousHash, genesis.hash);
   assert.ok(mined.hash.startsWith('00'));
@@ -39,17 +39,20 @@ test('mining drains pending transactions and preserves earlier blocks and data',
   const snapshot = structuredClone(mined);
   transaction.amount = 999;
   blockchain.addTransaction({ amount: 5 });
-  blockchain.minePendingTransactions(1);
+  blockchain.minePendingTransactions();
+  assert.ok(blockchain.getLatestBlock().hash.startsWith('00'));
   assert.deepEqual(structuredClone(blockchain.chain[0]), genesis);
   assert.deepEqual(structuredClone(mined), snapshot);
   assert.equal(blockchain.isChainValid(), true);
 });
 
 test('tampering with mined data or a hash link invalidates the chain', () => {
-  const blockchain = new Blockchain();
+  const blockchain = new Blockchain(1);
   blockchain.addTransaction({ amount: 10 });
-  const block = blockchain.minePendingTransactions(1);
-  blockchain.minePendingTransactions(1);
+  const block = blockchain.minePendingTransactions();
+  blockchain.minePendingTransactions();
+  assert.ok(block.hash.startsWith('0'));
+  assert.equal(blockchain.isChainValid(), true);
   block.data[0].amount = 20;
   assert.equal(blockchain.isChainValid(), false);
   block.data[0].amount = 10;
@@ -69,9 +72,9 @@ test('genesis is deterministic and cannot be replaced by rehashing', () => {
 });
 
 test('rehashing a tampered mined block without valid proof of work invalidates the chain', () => {
-  const blockchain = new Blockchain();
+  const blockchain = new Blockchain(2);
   blockchain.addTransaction({ amount: 10 });
-  const block = blockchain.minePendingTransactions(2);
+  const block = blockchain.minePendingTransactions();
   const minedNonce = block.nonce;
   assert.equal(blockchain.isChainValid(), true);
 
@@ -86,6 +89,25 @@ test('rehashing a tampered mined block without valid proof of work invalidates t
   assert.equal(block.previousHash, blockchain.chain[0].hash);
   assert.equal(blockchain.isChainValid(), false);
 
-  block.mineBlock(2);
+  block.mineBlock(blockchain.difficulty);
   assert.equal(blockchain.isChainValid(), true);
+});
+
+test('lowering a block-local difficulty cannot bypass the chain proof of work', () => {
+  const blockchain = new Blockchain(2);
+  blockchain.addTransaction({ amount: 10 });
+  const block = blockchain.minePendingTransactions();
+  const minedNonce = block.nonce;
+  assert.equal(blockchain.isChainValid(), true);
+
+  block.difficulty = 0;
+  do {
+    block.data[0].amount += 1;
+    block.hash = block.calculateHash();
+  } while (block.hash.startsWith('00'));
+
+  assert.equal(block.nonce, minedNonce);
+  assert.equal(block.hash, block.calculateHash());
+  assert.equal(block.previousHash, blockchain.chain[0].hash);
+  assert.equal(blockchain.isChainValid(), false);
 });

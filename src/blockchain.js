@@ -5,7 +5,13 @@ function createGenesisBlock() {
 }
 
 export class Blockchain {
-  constructor() {
+  constructor(difficulty = 2) {
+    if (!Number.isInteger(difficulty) || difficulty < 0 || difficulty > 64) {
+      throw new RangeError('Difficulty must be an integer between 0 and 64.');
+    }
+
+    // Mining and validation share the chain's configured rule.
+    this.difficulty = difficulty;
     this.chain = [createGenesisBlock()];
     this.pendingTransactions = [];
   }
@@ -18,14 +24,14 @@ export class Blockchain {
     this.pendingTransactions.push(transaction);
   }
 
-  minePendingTransactions(difficulty) {
+  minePendingTransactions() {
     const block = new Block(
       this.chain.length,
       new Date().toISOString(),
       this.pendingTransactions,
       this.getLatestBlock().hash,
     );
-    block.mineBlock(difficulty);
+    block.mineBlock(this.difficulty);
     this.chain.push(block);
     this.pendingTransactions = [];
     return block;
@@ -42,10 +48,7 @@ export class Blockchain {
       if (block.index !== index || block.hash !== block.calculateHash()) return false;
       if (index > 0) {
         if (block.previousHash !== this.chain[index - 1].hash) return false;
-        if (!Number.isInteger(block.difficulty) || block.difficulty < 0 || block.difficulty > 64) {
-          return false;
-        }
-        if (!block.hash.startsWith('0'.repeat(block.difficulty))) return false;
+        if (!block.hash.startsWith('0'.repeat(this.difficulty))) return false;
       }
     }
     return true;
