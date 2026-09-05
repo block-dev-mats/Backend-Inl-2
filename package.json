@@ -4,10 +4,15 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
     "test": "node --test",
-    "check": "node --check src/engine/block.js && node --check src/engine/blockchain.js && node --check src/domain/carbon-credit.js && node --check test/blockchain.test.js && node --check test/carbon-credit.test.js"
+    "check": "node --check src/app.js && node --check src/config.js && node --check src/server.js && node --check src/engine/block.js && node --check src/engine/blockchain.js && node --check src/domain/carbon-credit.js && node --check src/http/controllers/blockchain-controller.js && node --check src/http/routes/blockchain-routes.js && node --check src/http/middleware/error-handler.js && node --check test/blockchain.test.js && node --check test/carbon-credit.test.js && node --check test/api.test.js && node --check test/config.test.js"
   },
   "engines": {
     "node": ">=22"
+  },
+  "dependencies": {
+    "express": "^5.2.1"
   }
 }
